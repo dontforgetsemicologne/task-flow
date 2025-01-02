@@ -7,3 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  name        String
+  role        String
+  department  String?
+  avatar      String?
+  preferences Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  assignedTasks    Task[]    @relation("AssignedTo")
+  createdTasks     Task[]    @relation("CreatedBy")
+  teamMemberships  Team[]    @relation("TeamMembers")
+  teamLeading      Team[]    @relation("TeamLead")
+}
+
+model Team {
+  id          Int      @id @default(autoincrement())
+  name        String
+  leadId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  lead        User     @relation("TeamLead", fields: [leadId], references: [id])
+  members     User[]   @relation("TeamMembers")
+  tasks       Task[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  status      TaskStatus @default(PENDING)
+  priority    Priority @default(MEDIUM)
+  deadline    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Foreign keys
+  createdById Int
+  teamId      Int
+  
+  // Relations
+  createdBy   User     @relation("CreatedBy", fields: [createdById], references: [id])
+  team        Team     @relation(fields: [teamId], references: [id])
+  assignees   User[]   @relation("AssignedTo")
+  tags        Tag[]
+  comments    Comment[]
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String?
+  tasks     Task[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  taskId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  task      Task     @relation(fields: [taskId], references: [id])
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
